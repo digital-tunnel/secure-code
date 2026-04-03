@@ -22,7 +22,9 @@
     ],
     "support": {
         "email": "hey@digitaltunnel.net",
-        "security": "hey@digitaltunnel.net"
+        "issues": "https://github.com/digital-tunnel/secure-code/issues",
+        "source": "https://github.com/digital-tunnel/secure-code",
+        "security": "https://github.com/digital-tunnel/secure-code/blob/main/SECURITY.md"
     },
     "require": {
         "php": "^8.2",
