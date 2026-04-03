@@ -1,0 +1,65 @@
+{
+    "name": "digitaltunnel/secure-code",
+    "description": "Cryptographically secure random code generator with a fluent API for Laravel.",
+    "keywords": [
+        "laravel",
+        "random",
+        "code",
+        "secure",
+        "generator",
+        "otp",
+        "pin",
+        "voucher",
+        "token"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "DigitalTunnel",
+            "email": "dev@digitaltunnel.io"
+        }
+    ],
+    "support": {
+        "email": "hey@digitaltunnel.net",
+        "security": "hey@digitaltunnel.net"
+    },
+    "require": {
+        "php": "^8.2",
+        "ext-bcmath": "*",
+        "illuminate/support": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DigitalTunnel\\SecureCode\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DigitalTunnel\\SecureCode\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DigitalTunnel\\SecureCode\\Providers\\SecureCodeServiceProvider"
+            ],
+            "aliases": {
+                "SecureCode": "DigitalTunnel\\SecureCode\\Facades\\SecureCode"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
