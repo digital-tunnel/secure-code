@@ -11,25 +11,23 @@ use DigitalTunnel\SecureCode\Support\HashId;
 use DigitalTunnel\SecureCode\Support\Mask;
 
 /**
- * Static entry point for the secure code generator.
- *
- * @method static CodeBuilder length(int $length)
- * @method static CodeBuilder charset(Charset $charset)
- * @method static CodeBuilder pool(string $characters)
- * @method static CodeBuilder prefix(string $prefix)
- * @method static CodeBuilder suffix(string $suffix)
- * @method static CodeBuilder separator(string $separator, int $every = 4)
- * @method static CodeBuilder uppercase()
- * @method static CodeBuilder lowercase()
- * @method static CodeBuilder excludeSimilar(bool $exclude = true)
- * @method static CodeBuilder count(int $count)
- * @method static CodeBuilder unique(\Closure|\DigitalTunnel\SecureCode\Contracts\UniquenessChecker $checker)
- * @method static CodeBuilder maxAttempts(int $attempts)
- * @method static CodeBuilder preset(string|Preset $preset)
- * @method static CodeBuilder pattern(string $pattern)
- * @method static CodeBuilder withChecksum(string $type = 'luhn')
- * @method static CodeBuilder withEvents(bool $dispatch = true)
- * @method static CodeBuilder uniqueInTable(string $table, string $column = 'code', ?string $connection = null)
+ * @method static|CodeBuilder length(int $length)
+ * @method static|CodeBuilder charset(Charset $charset)
+ * @method static|CodeBuilder pool(string $characters)
+ * @method static|CodeBuilder prefix(string $prefix)
+ * @method static|CodeBuilder suffix(string $suffix)
+ * @method static|CodeBuilder separator(string $separator, int $every = 4)
+ * @method static|CodeBuilder uppercase()
+ * @method static|CodeBuilder lowercase()
+ * @method static|CodeBuilder excludeSimilar(bool $exclude = true)
+ * @method static|CodeBuilder count(int $count)
+ * @method static|CodeBuilder unique(\Closure|\DigitalTunnel\SecureCode\Contracts\UniquenessChecker $checker)
+ * @method static|CodeBuilder maxAttempts(int $attempts)
+ * @method static|CodeBuilder preset(string|Preset $preset)
+ * @method static|CodeBuilder pattern(string $pattern)
+ * @method static|CodeBuilder withChecksum(string $type = 'luhn')
+ * @method static|CodeBuilder withEvents(bool $dispatch = true)
+ * @method static|CodeBuilder uniqueInTable(string $table, string $column = 'code', ?string $connection = null)
  */
 final class SecureCode
 {
@@ -90,6 +88,15 @@ final class SecureCode
      * Forward static calls to a fresh CodeBuilder instance.
      */
     public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return (new CodeBuilder)->{$method}(...$arguments);
+    }
+
+    /**
+     * Forward instance calls to a fresh CodeBuilder instance.
+     * Required for Laravel Facade resolution which calls instance methods.
+     */
+    public function __call(string $method, array $arguments): mixed
     {
         return (new CodeBuilder)->{$method}(...$arguments);
     }
