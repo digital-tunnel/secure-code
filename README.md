@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-    <a href="https://packagist.org/packages/digitaltunnel/secure-code"><img src="https://img.shields.io/packagist/v/digitaltunnel/secure-code.svg?style=flat-square" alt="Latest Version"></a>
-    <a href="https://packagist.org/packages/digitaltunnel/secure-code"><img src="https://img.shields.io/packagist/php-v/digitaltunnel/secure-code.svg?style=flat-square" alt="PHP Version"></a>
-    <a href="https://packagist.org/packages/digitaltunnel/secure-code"><img src="https://img.shields.io/packagist/l/digitaltunnel/secure-code.svg?style=flat-square" alt="License"></a>
+    <a href="https://github.com/digital-tunnel/secure-code/releases"><img src="https://img.shields.io/github/v/release/digital-tunnel/secure-code?style=flat-square" alt="Latest Version"></a>
+    <a href="https://github.com/digital-tunnel/secure-code"><img src="https://img.shields.io/badge/php-%5E8.2-8892BF?style=flat-square" alt="PHP Version"></a>
+    <a href="https://github.com/digital-tunnel/secure-code/blob/main/LICENSE"><img src="https://img.shields.io/github/license/digital-tunnel/secure-code?style=flat-square" alt="License"></a>
 </p>
 
 # Secure Code
