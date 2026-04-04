@@ -81,4 +81,24 @@ return [
         'min_length' => 6,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sequence Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the sequential document ID generator. Use a dedicated
+    | database connection for strict no-gap guarantees when your application
+    | wraps business logic in DB transactions.
+    |
+    */
+
+    'sequences' => [
+        'connection' => null,
+        'table' => 'secure_code_sequences',
+        'pad' => 5,
+        'format' => '{prefix}{sequence}{suffix}',
+        'reset' => 'never',
+        'start_at' => 1,
+    ],
+
 ];

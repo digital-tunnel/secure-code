@@ -16,8 +16,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "DigitalTunnel",
-            "email": "dev@digitaltunnel.io"
+            "name": "Digital Tunnel",
+            "email": "hey@digitaltunnel.net"
         }
     ],
     "support": {
@@ -29,6 +29,7 @@
     "require": {
         "php": "^8.2",
         "ext-bcmath": "*",
+        "illuminate/database": "^11.0|^12.0|^13.0",
         "illuminate/support": "^11.0|^12.0|^13.0"
     },
     "require-dev": {

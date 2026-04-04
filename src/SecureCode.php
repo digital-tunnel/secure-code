@@ -6,6 +6,8 @@ namespace DigitalTunnel\SecureCode;
 
 use DigitalTunnel\SecureCode\Enums\Charset;
 use DigitalTunnel\SecureCode\Enums\Preset;
+use DigitalTunnel\SecureCode\Sequence\SequenceBuilder;
+use DigitalTunnel\SecureCode\Sequence\SequenceGenerator;
 use DigitalTunnel\SecureCode\Support\Checksum;
 use DigitalTunnel\SecureCode\Support\HashId;
 use DigitalTunnel\SecureCode\Support\Mask;
@@ -28,6 +30,7 @@ use DigitalTunnel\SecureCode\Support\Mask;
  * @method static|CodeBuilder withChecksum(string $type = 'luhn')
  * @method static|CodeBuilder withEvents(bool $dispatch = true)
  * @method static|CodeBuilder uniqueInTable(string $table, string $column = 'code', ?string $connection = null)
+ * @method static SequenceBuilder sequence(string $key)
  */
 final class SecureCode
 {
@@ -74,6 +77,18 @@ final class SecureCode
         int $maxAttempts = 5,
     ): CodeVault {
         return new CodeVault($length, $charset, $ttl, $maxAttempts);
+    }
+
+    /**
+     * Create a new SequenceBuilder for generating sequential document IDs.
+     */
+    public static function sequence(string $key): SequenceBuilder
+    {
+        $generator = function_exists('app')
+            ? app(SequenceGenerator::class)
+            : new SequenceGenerator;
+
+        return new SequenceBuilder($key, $generator);
     }
 
     /**

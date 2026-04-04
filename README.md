@@ -12,7 +12,7 @@
 
 **Cryptographically secure random code generator with a fluent API for Laravel.**
 
-Generate PINs, voucher codes, serial keys, invite tokens, verification codes, and more -- all powered by PHP's `random_int()` CSPRNG under the hood.
+Generate PINs, voucher codes, serial keys, invite tokens, verification codes, sequential document IDs, and more -- all powered by PHP's `random_int()` CSPRNG under the hood.
 
 ---
 
@@ -45,6 +45,7 @@ Generate PINs, voucher codes, serial keys, invite tokens, verification codes, an
   - [Export (JSON, CSV, Text)](#export-json-csv-text)
   - [Events](#events)
   - [Validation Rule](#validation-rule)
+  - [Sequential Document IDs](#sequential-document-ids)
   - [Artisan Command](#artisan-command)
   - [Blade Directive](#blade-directive)
   - [Facade](#facade)
@@ -84,6 +85,15 @@ php artisan vendor:publish --tag=secure-code-config
 
 This publishes `config/secure-code.php` where you can set application-wide defaults.
 
+### Publish Migrations (required for Sequential IDs)
+
+```bash
+php artisan vendor:publish --tag=secure-code-migrations
+php artisan migrate
+```
+
+This creates the `secure_code_sequences` table used by the sequential document ID generator. Only needed if you use the `sequence()` feature.
+
 ---
 
 ## Quick Start
@@ -103,6 +113,14 @@ $voucher = SecureCode::preset('voucher')->generate(); // "A8K3-M7F2-B9X1-P4J6"
 
 // Pattern-based
 $code = SecureCode::pattern('AAA-999-AAA')->generate(); // "KFM-847-XBP"
+
+// Sequential document ID (requires migration)
+$id = SecureCode::sequence('invoice')
+    ->prefix('INV-')
+    ->format('{prefix}{sequence}-{Y}{m}{d}')
+    ->padSequence(5)
+    ->resetEvery('yearly')
+    ->next(); // "INV-00001-20260404"
 ```
 
 ---
@@ -127,6 +145,15 @@ return [
     'hashid' => [
         'salt' => '',
         'min_length' => 6,
+    ],
+
+    'sequences' => [
+        'connection' => null,       // null = default DB connection
+        'table' => 'secure_code_sequences',
+        'pad' => 5,                 // zero-pad width for sequence numbers
+        'format' => '{prefix}{sequence}{suffix}',
+        'reset' => 'never',         // 'never', 'daily', 'monthly', 'yearly'
+        'start_at' => 1,
     ],
 ];
 ```
@@ -603,6 +630,116 @@ $request->validate([
 ]);
 ```
 
+### Sequential Document IDs
+
+Generate gap-free, duplicate-free sequential document numbers (invoices, orders, receipts, etc.) backed by database-level locking. Safe for heavy concurrent transactions.
+
+> **Requires migration**: Run `php artisan vendor:publish --tag=secure-code-migrations && php artisan migrate` first.
+
+**Basic usage:**
+
+```php
+$id = SecureCode::sequence('invoice')
+    ->prefix('INV-')
+    ->padSequence(5)
+    ->next();
+// "INV-00001"
+// Next call: "INV-00002", "INV-00003", ...
+```
+
+**Full format with date tokens:**
+
+```php
+$id = SecureCode::sequence('invoice')
+    ->prefix('INV-')
+    ->suffix('-EG')
+    ->format('{prefix}{sequence}{separator}{Y}{m}{d}{suffix}')
+    ->padSequence(5)
+    ->resetEvery('yearly')
+    ->next();
+// "INV-00001-20260404-EG"
+```
+
+**Batch allocation (atomic, contiguous):**
+
+```php
+$ids = SecureCode::sequence('order')
+    ->prefix('ORD-')
+    ->format('{prefix}{sequence}{separator}{Y}{m}{d}')
+    ->padSequence(5)
+    ->next(3);
+// ["ORD-00001-20260404", "ORD-00002-20260404", "ORD-00003-20260404"]
+```
+
+**Inspect and preview:**
+
+```php
+$builder = SecureCode::sequence('invoice')->prefix('INV-')->padSequence(5);
+
+// Current value (last allocated), null if never used
+$builder->current(); // null
+
+$builder->next();    // "INV-00001"
+
+// Current value after allocation
+$builder->current(); // 1
+
+// Preview next without allocating
+$builder->preview(); // "INV-00002"
+```
+
+**Period-based reset:**
+
+```php
+// Resets to 1 every year
+SecureCode::sequence('invoice')->resetEvery('yearly')->next();
+
+// Resets to 1 every month
+SecureCode::sequence('receipt')->resetEvery('monthly')->next();
+
+// Resets to 1 every day
+SecureCode::sequence('ticket')->resetEvery('daily')->next();
+
+// Never resets (default)
+SecureCode::sequence('order')->resetEvery('never')->next();
+```
+
+**Custom start value and DB connection:**
+
+```php
+$id = SecureCode::sequence('invoice')
+    ->startAt(1000)           // first ever allocation starts at 1000
+    ->connection('mysql')     // use a specific DB connection
+    ->next();
+// "01000"
+```
+
+**Format tokens:**
+
+| Token | Example | Description |
+|---|---|---|
+| `{prefix}` | `INV-` | Configured prefix |
+| `{suffix}` | `-EG` | Configured suffix |
+| `{sequence}` | `00001` | Zero-padded sequence number |
+| `{separator}` | `-` | Configured separator |
+| `{Y}` | `2026` | 4-digit year |
+| `{y}` | `26` | 2-digit year |
+| `{m}` | `04` | 2-digit month |
+| `{d}` | `04` | 2-digit day |
+| `{timestamp}` | `1775433600` | Unix timestamp |
+
+**How it works under the hood:**
+
+- Each call to `next()` runs an **autonomous database transaction** with `SELECT ... FOR UPDATE`
+- This acquires an exclusive row lock, preventing concurrent access
+- The sequence number is committed immediately, independent of any outer transaction
+- **No gaps**: numbers are contiguous (1, 2, 3, ...)
+- **No duplicates**: row-level locking serializes access
+- **Deadlock-free**: each operation locks exactly one row
+- Different sequence keys (`'invoice'` vs `'order'`) are fully independent
+
+> **Tip**: For strict isolation from your application's transactions, configure a dedicated database connection in `config/secure-code.php` under `sequences.connection`.
+
 ### Artisan Command
 
 Generate codes from the command line:
@@ -708,6 +845,7 @@ $vouchers = SecureCode::length(16)
 | `verifyChecksum(string, string)` | `bool` | Verify a checksum |
 | `vault(int, Charset, int, int)` | `CodeVault` | Create a code vault |
 | `hashid(string, int)` | `HashId` | Create a HashId encoder |
+| `sequence(string)` | `SequenceBuilder` | Create a sequential ID builder |
 
 ### CodeBuilder (Fluent Builder)
 
@@ -747,6 +885,25 @@ Additional methods on CodeBuilder:
 | `PatternGenerator::toRegex(string)` | Convert pattern to regex |
 | `HashId::encode(int)` | Encode integer |
 | `HashId::decode(string)` | Decode to integer |
+
+### SequenceBuilder (Fluent Builder)
+
+Immutable -- every method returns a **new** instance:
+
+| Method | Returns | Description |
+|---|---|---|
+| `prefix(string)` | `SequenceBuilder` | Set ID prefix |
+| `suffix(string)` | `SequenceBuilder` | Set ID suffix |
+| `separator(string)` | `SequenceBuilder` | Set separator character |
+| `format(string)` | `SequenceBuilder` | Set format template with tokens |
+| `padSequence(int)` | `SequenceBuilder` | Set zero-pad width |
+| `resetEvery(string\|SequenceResetPeriod)` | `SequenceBuilder` | Set reset period |
+| `startAt(int)` | `SequenceBuilder` | Set initial sequence value |
+| `connection(string)` | `SequenceBuilder` | Set database connection |
+| `date(DateTimeInterface)` | `SequenceBuilder` | Set date for formatting and period key |
+| `next(int $count = 1)` | `string\|array` | Allocate and return next ID(s) |
+| `current()` | `?int` | Get last allocated value |
+| `preview()` | `string` | Preview next ID without allocating |
 
 ---
 
@@ -824,12 +981,28 @@ SecureCode::mask($code, visibleStart: 1, visibleEnd: 1);
 // "8****3"
 ```
 
-### Invoice Numbers
+### Invoice Numbers (Sequential)
 
 ```php
-$invoice = SecureCode::pattern('INV-9999-AAAA-99')
-    ->generate();
-// "INV-8472-KFMX-93"
+// Sequential, gap-free invoice numbers that reset yearly
+$invoiceId = SecureCode::sequence('invoice')
+    ->prefix('INV-')
+    ->suffix('-EG')
+    ->format('{prefix}{sequence}{separator}{Y}{m}{d}{suffix}')
+    ->padSequence(6)
+    ->resetEvery('yearly')
+    ->next();
+// "INV-000001-20260404-EG"
+// Next: "INV-000002-20260404-EG"
+
+// Bulk-generate for a batch of orders
+$ids = SecureCode::sequence('order')
+    ->prefix('ORD-')
+    ->format('{prefix}{Y}{m}{separator}{sequence}')
+    ->padSequence(5)
+    ->resetEvery('monthly')
+    ->next(10);
+// ["ORD-202604-00001", "ORD-202604-00002", ..., "ORD-202604-00010"]
 ```
 
 ---
@@ -848,7 +1021,8 @@ src/
 │   └── GenerateCommand.php     # Artisan command
 ├── Enums/
 │   ├── Charset.php             # 13 predefined character pools
-│   └── Preset.php              # 7 preconfigured presets
+│   ├── Preset.php              # 7 preconfigured presets
+│   └── SequenceResetPeriod.php # Reset period enum
 ├── Events/
 │   ├── CodeGenerated.php       # Single code event
 │   └── CodeBatchGenerated.php  # Batch event
@@ -858,6 +1032,10 @@ src/
 │   └── SecureCodeServiceProvider.php
 ├── Rules/
 │   └── SecureCodeFormat.php    # Validation rule
+├── Sequence/
+│   ├── SequenceBuilder.php     # Fluent builder for sequential IDs
+│   ├── SequenceFormatter.php   # Token-based string formatting
+│   └── SequenceGenerator.php   # Atomic DB allocation engine
 └── Support/
     ├── Checksum.php            # Luhn & Mod-97
     ├── Entropy.php             # Entropy calculator
@@ -875,30 +1053,11 @@ src/
 
 ## Testing
 
-The package ships with **138 Pest tests** covering every feature:
+The package ships with **171 Pest tests** covering every feature:
 
 ```bash
-cd packages/digitaltunnel/secure-code
 ./vendor/bin/pest
 ```
-
-```
-  PASS  Tests\Unit\ChecksumTest .............. 10 tests
-  PASS  Tests\Unit\CommandTest ............... 12 tests
-  PASS  Tests\Unit\EntropyTest ................ 6 tests
-  PASS  Tests\Unit\EventTest .................. 5 tests
-  PASS  Tests\Unit\ExportTest ................. 8 tests
-  PASS  Tests\Unit\HashIdTest ................. 9 tests
-  PASS  Tests\Unit\MaskTest ................... 9 tests
-  PASS  Tests\Unit\PatternTest ................ 9 tests
-  PASS  Tests\Unit\PresetTest ................ 10 tests
-  PASS  Tests\Unit\SecureCodeTest ............ 43 tests
-  PASS  Tests\Unit\ValidationTest ............. 8 tests
-  PASS  Tests\Unit\VaultTest ................. 10 tests
-
-  Tests:    138 passed (332 assertions)
-```
-
 ---
 
 ## Security

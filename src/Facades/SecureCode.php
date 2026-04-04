@@ -8,6 +8,7 @@ use DigitalTunnel\SecureCode\CodeBuilder;
 use DigitalTunnel\SecureCode\CodeVault;
 use DigitalTunnel\SecureCode\Enums\Charset;
 use DigitalTunnel\SecureCode\Enums\Preset;
+use DigitalTunnel\SecureCode\Sequence\SequenceBuilder;
 use DigitalTunnel\SecureCode\Support\HashId;
 use Illuminate\Support\Facades\Facade;
 
@@ -35,6 +36,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array entropy(int $length = null, Charset|string $charset = null)
  * @method static CodeVault vault(int $length = 6, Charset $charset = Charset::Numeric, int $ttl = 300, int $maxAttempts = 5)
  * @method static HashId hashid(string $salt = '', int $minLength = 6)
+ * @method static SequenceBuilder sequence(string $key)
  *
  * @see \DigitalTunnel\SecureCode\SecureCode
  */

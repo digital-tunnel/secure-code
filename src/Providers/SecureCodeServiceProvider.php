@@ -6,6 +6,7 @@ namespace DigitalTunnel\SecureCode\Providers;
 
 use DigitalTunnel\SecureCode\Console\GenerateCommand;
 use DigitalTunnel\SecureCode\SecureCode;
+use DigitalTunnel\SecureCode\Sequence\SequenceGenerator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,6 +17,8 @@ class SecureCodeServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../../config/secure-code.php', 'secure-code');
 
         $this->app->singleton(SecureCode::class, fn () => new SecureCode);
+
+        $this->app->singleton(SequenceGenerator::class, fn () => new SequenceGenerator);
     }
 
     public function boot(): void
@@ -29,6 +32,10 @@ class SecureCodeServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../../config/secure-code.php' => config_path('secure-code.php'),
             ], 'secure-code-config');
+
+            $this->publishesMigrations([
+                __DIR__.'/../../database/migrations' => database_path('migrations'),
+            ], 'secure-code-migrations');
 
             $this->commands([
                 GenerateCommand::class,
